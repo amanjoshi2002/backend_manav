@@ -1,5 +1,4 @@
 
-// To this to ensure proper model import
 const { SubCategory } = require('../models/SubCategory');
 const subCategoryController = {
   // Create new subcategory with sub-subcategories
@@ -90,6 +89,22 @@ const subCategoryController = {
       res.json({ message: 'Sub-subcategory deactivated successfully' });
     } catch (error) {
       res.status(400).json({ message: error.message });
+    }
+  },
+
+  // Get all subcategories
+  getAllSubCategories: async (req, res) => {
+    try {
+      const subCategories = await SubCategory.find();
+      res.status(200).json({
+        success: true,
+        data: subCategories
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
     }
   }
 };

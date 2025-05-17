@@ -7,7 +7,9 @@ const {
   logout,
   forgotPassword,
   resetPassword,
-  updateRole
+  updateRole,
+  getUsers, // New function to get users
+  deleteUser // New function to delete user
 } = require('../controllers/authController');
 
 // Public auth routes
@@ -19,5 +21,7 @@ router.put('/resetpassword/:resettoken', resetPassword);
 
 // Admin only routes
 router.put('/users/:id/role', protect, adminOnly, updateRole);
+router.get('/users', protect, adminOnly, getUsers); // New route to get users
+router.delete('/users/:id', protect, adminOnly, deleteUser); // New route to delete user
 
 module.exports = router;

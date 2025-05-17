@@ -57,11 +57,11 @@ exports.appOnly = async (req, res, next) => {
 // Role-based authorization for app users (regular, reseller, special)
 exports.authorize = (...roles) => {
   return (req, res, next) => {
+    // Allow admin users to access all routes
     if (req.user.role === 'admin') {
-      return res.status(403).json({ 
-        message: 'Admin users should use the admin panel'
-      });
+      return next();
     }
+    
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ 
         message: `User role ${req.user.role} is not authorized to access this route`
