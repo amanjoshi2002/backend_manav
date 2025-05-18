@@ -38,6 +38,11 @@ const productSchema = new mongoose.Schema({
     }
   },
   description: String,
+  colors: [{
+    name: String,
+    images: [String]
+  }],
+  sizes: [String],
   dynamicFields: {
     type: Map,
     of: mongoose.Schema.Types.Mixed

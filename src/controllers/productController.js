@@ -30,6 +30,8 @@ const productController = {
           special: req.body.pricing.special
         },
         description: req.body.description,
+        colors: req.body.colors || [],
+        sizes: req.body.sizes || [],
         dynamicFields: req.body.dynamicFields,
         images: req.body.images,
         stock: req.body.stock
