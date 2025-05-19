@@ -14,5 +14,5 @@ router.get('/subcategory/:subCategoryId/sub/:subSubCategoryId', protect, authori
 router.post('/', protect, adminOnly, productController.create);
 router.put('/:id', protect, adminOnly, productController.update);
 router.delete('/:id', protect, adminOnly, productController.delete);
-    
+
 module.exports = router;

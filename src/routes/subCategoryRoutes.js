@@ -4,8 +4,8 @@ const subCategoryController = require('../controllers/subCategoryController');
 const { protect, adminOnly, appOnly } = require('../middleware/auth');
 
 // Public routes
-router.get('/category/:category', appOnly, subCategoryController.getByCategory);
-router.get('/:id', appOnly, subCategoryController.getById);
+router.get('/category/:category', protect, appOnly, subCategoryController.getByCategory);
+router.get('/:id', protect, appOnly, subCategoryController.getById);
 
 // New route to get all subcategories
 router.get('/', protect, (req, res, next) => {
