@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
-const { protect, adminOnly, appOnly, authorize } = require('../middleware/auth');
+const { protect, adminOnly } = require('../middleware/auth');
 
 // Public routes - Flutter app
-router.get('/', protect, authorize(['admin', 'app']), productController.getAll);
-router.get('/:id', protect, authorize(['admin', 'app']), productController.getById);
-router.get('/category/:category', protect, authorize(['admin', 'app']), productController.getByCategory);
-router.get('/subcategory/:subCategoryId', protect, authorize(['admin', 'app']), productController.getBySubCategory);
-router.get('/subcategory/:subCategoryId/sub/:subSubCategoryId', protect, authorize(['admin', 'app']), productController.getBySubSubCategory);
+router.get('/', protect, productController.getAll);
+router.get('/:id', protect, productController.getById);
+router.get('/category/:category', protect, productController.getByCategory);
+router.get('/subcategory/:subCategoryId', protect, productController.getBySubCategory);
+router.get('/subcategory/:subCategoryId/sub/:subSubCategoryId', protect, productController.getBySubSubCategory);
 
 // Admin routes - Next.js admin panel
 router.post('/', protect, adminOnly, productController.create);
