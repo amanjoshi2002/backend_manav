@@ -48,7 +48,10 @@ const productSchema = new mongoose.Schema({
     of: mongoose.Schema.Types.Mixed
   },
   images: [String],
-  stock: Number,
+  isAvailable: {
+    type: Boolean,
+    default: true
+  },
   isActive: {
     type: Boolean,
     default: true

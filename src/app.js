@@ -20,6 +20,8 @@ app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/subcategories', require('./routes/subCategoryRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/pdfs', require('./routes/pdfRoutes'));
+app.use('/api/videos', require('./routes/videoRoutes'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
