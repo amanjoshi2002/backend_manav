@@ -5,47 +5,90 @@ const productController = {
   // Create new product
   create: async (req, res) => {
     try {
-      // Parse JSON fields if they are sent as strings
-      if (typeof req.body.colors === 'string') {
-        req.body.colors = JSON.parse(req.body.colors);
-      }
-      if (typeof req.body.dynamicFields === 'string') {
-        req.body.dynamicFields = JSON.parse(req.body.dynamicFields);
-      }
+      console.log('Request body:', req.body); // Debug log
 
-      // Ensure pricing fields are present
-      if (!req.body.pricing || !req.body.pricing.reseller) {
-        return res.status(400).json({ message: 'Pricing.reseller is required' });
-      }
-
-      // Handle images
-      const images = req.files ? req.files.map(file => file.location) : [];
-
-      const approvalStatus = req.user.role === 'admin' ? 'approved' : 'pending';
-
-      // Create the product
-      const product = new Product({
+      // Initialize default values
+      const productData = {
         name: req.body.name,
         categoryId: req.body.categoryId,
         subCategoryId: req.body.subCategoryId,
         subSubCategoryId: req.body.subSubCategoryId,
         pricing: req.body.pricing,
-        description: req.body.description,
-        colors: req.body.colors || [],
-        sizes: req.body.sizes || [],
-        dynamicFields: req.body.dynamicFields || {},
-        images,
+        description: req.body.description || '',
+        colors: [],
+        sizes: [],
+        dynamicFields: {},
+        images: [],
         createdBy: req.user.id,
-        approvalStatus
-      });
+        approvalStatus: req.user.role === 'admin' ? 'approved' : 'pending'
+      };
 
+      // Parse JSON fields if they are sent as strings
+      if (req.body.colors) {
+        try {
+          productData.colors = typeof req.body.colors === 'string' 
+            ? JSON.parse(req.body.colors) 
+            : req.body.colors;
+        } catch (e) {
+          console.log('Error parsing colors:', e);
+          productData.colors = [];
+        }
+      }
+
+      if (req.body.sizes) {
+        try {
+          productData.sizes = typeof req.body.sizes === 'string'
+            ? JSON.parse(req.body.sizes)
+            : req.body.sizes;
+        } catch (e) {
+          console.log('Error parsing sizes:', e);
+          productData.sizes = [];
+        }
+      }
+
+      if (req.body.dynamicFields) {
+        try {
+          productData.dynamicFields = typeof req.body.dynamicFields === 'string'
+            ? JSON.parse(req.body.dynamicFields)
+            : req.body.dynamicFields;
+        } catch (e) {
+          console.log('Error parsing dynamicFields:', e);
+          productData.dynamicFields = {};
+        }
+      }
+
+      if (req.body.pricing) {
+        try {
+          productData.pricing = typeof req.body.pricing === 'string'
+            ? JSON.parse(req.body.pricing)
+            : req.body.pricing;
+        } catch (e) {
+          console.log('Error parsing pricing:', e);
+          return res.status(400).json({ message: 'Invalid pricing format' });
+        }
+      }
+
+      // Ensure pricing fields are present
+      if (!productData.pricing || !productData.pricing.reseller) {
+        return res.status(400).json({ message: 'Pricing.reseller is required' });
+      }
+
+      // Handle images
+      if (req.files) {
+        productData.images = req.files.map(file => file.location);
+      }
+
+      // Create the product
+      const product = new Product(productData);
       const savedProduct = await product.save();
+
       res.status(201).json({
         success: true,
-        message: approvalStatus === 'approved' ? 'Product created successfully' : 'Product created and sent for approval',
+        message: productData.approvalStatus === 'approved' ? 'Product created successfully' : 'Product created and sent for approval',
         product: savedProduct
       });
     } catch (error) {
+      console.log('Error in create product:', error); // Debug log
       res.status(400).json({ success: false, message: error.message });
     }
   },

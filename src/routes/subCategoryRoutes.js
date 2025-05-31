@@ -5,7 +5,7 @@ const { protect, adminOnly, appOnly } = require('../middleware/auth');
 const upload = require('../middleware/upload'); // S3 upload middleware
 
 // Public routes
-router.get('/category/:category', protect, appOnly, subCategoryController.getByCategory);
+router.get('/category/:categoryId', protect, appOnly, subCategoryController.getByCategory);
 router.get('/:id', protect, appOnly, subCategoryController.getById);
 
 // New route to get all subcategories
