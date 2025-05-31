@@ -1,5 +1,4 @@
 const Product = require('../models/Product');
-
 const { SubCategory } = require('../models/SubCategory');
 
 const productController = {
@@ -22,6 +21,8 @@ const productController = {
       // Handle images
       const images = req.files ? req.files.map(file => file.location) : [];
 
+      const approvalStatus = req.user.role === 'admin' ? 'approved' : 'pending';
+
       // Create the product
       const product = new Product({
         name: req.body.name,
@@ -34,12 +35,18 @@ const productController = {
         sizes: req.body.sizes || [],
         dynamicFields: req.body.dynamicFields || {},
         images,
+        createdBy: req.user.id,
+        approvalStatus
       });
 
       const savedProduct = await product.save();
-      res.status(201).json(savedProduct);
+      res.status(201).json({
+        success: true,
+        message: approvalStatus === 'approved' ? 'Product created successfully' : 'Product created and sent for approval',
+        product: savedProduct
+      });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      res.status(400).json({ success: false, message: error.message });
     }
   },
 
@@ -129,14 +136,86 @@ const productController = {
         }
       }
 
-      Object.keys(req.body).forEach(key => {
-        product[key] = req.body[key];
-      });
+      const { name, categoryId, subCategoryId, description, pricing, images } = req.body;
 
-      const updatedProduct = await product.save();
-      res.json(updatedProduct);
+      const approvalStatus = req.user.role === 'admin' ? 'approved' : 'pending';
+
+      const updatedData = {
+        name,
+        categoryId,
+        subCategoryId,
+        description,
+        pricing,
+        images,
+        updatedBy: req.user.id,
+        approvalStatus
+      };
+
+      const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updatedData, { new: true });
+      res.status(200).json({
+        success: true,
+        message: approvalStatus === 'approved' ? 'Product updated successfully' : 'Product updated and sent for approval',
+        product: updatedProduct
+      });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      res.status(400).json({ success: false, message: error.message });
+    }
+  },
+
+  // Approve or reject a product (Admin only)
+  approveProduct: async (req, res) => {
+    try {
+      const { approvalStatus } = req.body;
+
+      if (!['approved', 'rejected'].includes(approvalStatus)) {
+        return res.status(400).json({ success: false, message: 'Invalid approval status' });
+      }
+
+      const product = await Product.findById(req.params.id);
+      if (!product) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
+
+      product.approvalStatus = approvalStatus;
+      await product.save();
+
+      res.status(200).json({
+        success: true,
+        message: `Product ${approvalStatus} successfully`,
+        product
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  },
+
+  // Get all approved products
+  getApprovedProducts: async (req, res) => {
+    try {
+      const products = await Product.find({ approvalStatus: 'approved', isActive: true });
+      res.status(200).json(products);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  // Get pending and rejected products
+  getPendingAndRejectedProducts: async (req, res) => {
+    try {
+      const products = await Product.find({
+        approvalStatus: { $in: ['pending', 'rejected'] },
+        isActive: true
+      }).populate('categoryId', 'name').populate('subCategoryId', 'name').populate('subSubCategoryId', 'name');
+
+      res.status(200).json({
+        success: true,
+        products
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
     }
   },
 

@@ -31,13 +31,21 @@ exports.adminOnly = async (req, res, next) => {
   try {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
-        message: 'This route is restricted to admin users only'
+        message: 'Access denied. Admin only.'
       });
     }
     next();
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// Staff only routes
+exports.staffOnly = async (req, res, next) => {
+  if (req.user.role !== 'staff') {
+    return res.status(403).json({ message: 'Access denied. Staff only.' });
+  }
+  next();
 };
 
 // App routes - block admin routes from being accessed

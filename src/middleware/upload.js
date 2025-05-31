@@ -10,9 +10,9 @@ const upload = multer({
       cb(null, { fieldName: file.fieldname });
     },
     key: (req, file, cb) => {
-      cb(null, `images/${Date.now().toString()}_${file.originalname}`);
-    }
-  })
+      cb(null, `uploads/${Date.now().toString()}_${file.originalname}`);
+    },
+  }),
 });
 
 module.exports = upload;

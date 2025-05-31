@@ -1,13 +1,5 @@
 const mongoose = require('mongoose');
 
-// Define fixed categories as an enum
-const CATEGORIES = {
-  APPARELS: 'apparels',
-  TROPHIES: 'trophies',
-  CORPORATE_GIFTS: 'corporate_gifts',
-  PERSONALISED_GIFTS: 'personalised_gifts'
-};
-
 // Schema for attributes (brands, materials, etc.)
 const attributeSchema = new mongoose.Schema({
   name: {
@@ -48,13 +40,13 @@ const subCategorySchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  category: {
-    type: String,
-    enum: Object.values(CATEGORIES),
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category', // Reference to the Category model
     required: true
   },
   description: String,
-  image: String,
+  image: String, // S3 URL for the subcategory image
   // Common attributes that apply to all sub-subcategories
   commonAttributes: [attributeSchema],
   // Sub-subcategories array
@@ -67,8 +59,4 @@ const subCategorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Export both the model and categories enum
-module.exports = {
-  SubCategory: mongoose.model('SubCategory', subCategorySchema),
-  CATEGORIES
-};
+module.exports = mongoose.model('SubCategory', subCategorySchema);

@@ -1,10 +1,16 @@
 const Video = require('../models/Video');
 
 const videoController = {
-  // Create new video (admin only)
+  // Create new video with file upload
   create: async (req, res) => {
     try {
-      const video = new Video(req.body);
+      const videoUrl = req.file ? req.file.location : null; // S3 URL for the uploaded video
+
+      const video = new Video({
+        ...req.body,
+        videoUrl, // Save the S3 URL
+      });
+
       const savedVideo = await video.save();
       res.status(201).json(savedVideo);
     } catch (error) {
@@ -35,13 +41,24 @@ const videoController = {
     }
   },
 
-  // Update video (admin only)
+  // Update video with file upload
   update: async (req, res) => {
     try {
-      const video = await Video.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const videoUrl = req.file ? req.file.location : null;
+
+      const updatedData = {
+        ...req.body,
+      };
+
+      if (videoUrl) {
+        updatedData.videoUrl = videoUrl; // Update the video URL if a new one is uploaded
+      }
+
+      const video = await Video.findByIdAndUpdate(req.params.id, updatedData, { new: true });
       if (!video) {
         return res.status(404).json({ message: 'Video not found' });
       }
+
       res.json(video);
     } catch (error) {
       res.status(400).json({ message: error.message });

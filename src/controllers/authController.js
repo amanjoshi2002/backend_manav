@@ -83,6 +83,7 @@ exports.logout = async (req, res) => {
   });
 };
 
+// Forgot password with OTP
 exports.forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
@@ -94,30 +95,29 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    const resetToken = crypto.randomBytes(20).toString('hex');
+    // Generate a 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.resetPasswordToken = crypto
       .createHash('sha256')
-      .update(resetToken)
+      .update(otp)
       .digest('hex');
 
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     await user.save();
 
-    const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/resetpassword/${resetToken}`;
-
-    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
+    const message = `Your password reset OTP is: ${otp}. It is valid for 10 minutes.`;
 
     await sendEmail({
       email: user.email,
-      subject: 'Password reset token',
+      subject: 'Password Reset OTP',
       message
     });
 
     res.status(200).json({
       success: true,
-      message: 'Email sent'
+      message: 'OTP sent to your email'
     });
   } catch (error) {
     user.resetPasswordToken = undefined;
@@ -131,11 +131,14 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
+// Reset password with OTP
 exports.resetPassword = async (req, res) => {
   try {
+    const { otp, password } = req.body;
+
     const resetPasswordToken = crypto
       .createHash('sha256')
-      .update(req.params.resettoken)
+      .update(otp)
       .digest('hex');
 
     const user = await User.findOne({
@@ -146,11 +149,11 @@ exports.resetPassword = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid token'
+        error: 'Invalid or expired OTP'
       });
     }
 
-    user.password = req.body.password;
+    user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
@@ -173,75 +176,114 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-exports.updateRole = async (req, res) => {
+// Get the logged-in user's profile
+exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update the logged-in user's profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    const updatedData = { name, email };
+
+    const user = await User.findByIdAndUpdate(req.user.id, updatedData, {
+      new: true,
+      runValidators: true
+    }).select('-password');
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Validate role
-    const validRoles = ['regular', 'reseller', 'special', 'admin'];
-    if (!validRoles.includes(req.body.role)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid role specified'
-      });
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Update the logged-in user's password
+exports.updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    user.role = req.body.role;
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword;
     await user.save();
 
-    res.status(200).json({
-      success: true,
-      data: user
-    });
+    res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    res.status(400).json({ message: error.message });
   }
 };
 
+// Update user role (Admin only)
+exports.updateRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// Get all users (Admin only)
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await User.find().select('-password');
     res.status(200).json({
       success: true,
-      data: users
+      count: users.length,
+      users
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
+// Delete user (Admin only)
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
-
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
+      return res.status(404).json({ message: 'User not found' });
     }
-
     res.status(200).json({
       success: true,
       message: 'User deleted successfully'
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    res.status(500).json({ message: error.message });
   }
 };

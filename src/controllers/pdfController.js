@@ -1,10 +1,16 @@
 const Pdf = require('../models/Pdf');
 
 const pdfController = {
-  // Create new PDF (admin only)
+  // Create new PDF with file upload
   create: async (req, res) => {
     try {
-      const pdf = new Pdf(req.body);
+      const fileUrl = req.file ? req.file.location : null; // S3 URL for the uploaded PDF
+
+      const pdf = new Pdf({
+        ...req.body,
+        pdfLink: fileUrl, // Changed from fileUrl to pdfLink
+      });
+
       const savedPdf = await pdf.save();
       res.status(201).json(savedPdf);
     } catch (error) {
@@ -35,13 +41,24 @@ const pdfController = {
     }
   },
 
-  // Update PDF (admin only)
+  // Update PDF with file upload
   update: async (req, res) => {
     try {
-      const pdf = await Pdf.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const fileUrl = req.file ? req.file.location : null;
+
+      const updatedData = {
+        ...req.body,
+      };
+
+      if (fileUrl) {
+        updatedData.pdfLink = fileUrl; // Changed from fileUrl to pdfLink
+      }
+
+      const pdf = await Pdf.findByIdAndUpdate(req.params.id, updatedData, { new: true });
       if (!pdf) {
         return res.status(404).json({ message: 'PDF not found' });
       }
+
       res.json(pdf);
     } catch (error) {
       res.status(400).json({ message: error.message });
