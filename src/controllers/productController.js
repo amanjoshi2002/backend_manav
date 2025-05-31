@@ -6,35 +6,34 @@ const productController = {
   // Create new product
   create: async (req, res) => {
     try {
-      // Verify that the sub-subcategory exists
-      const subCategory = await SubCategory.findById(req.body.subCategoryId);
-      if (!subCategory) {
-        return res.status(404).json({ message: 'Subcategory not found' });
+      // Parse JSON fields if they are sent as strings
+      if (typeof req.body.colors === 'string') {
+        req.body.colors = JSON.parse(req.body.colors);
+      }
+      if (typeof req.body.dynamicFields === 'string') {
+        req.body.dynamicFields = JSON.parse(req.body.dynamicFields);
       }
 
-      const subSubCategory = subCategory.subCategories.id(req.body.subSubCategoryId);
-      if (!subSubCategory) {
-        return res.status(404).json({ message: 'Sub-subcategory not found' });
+      // Ensure pricing fields are present
+      if (!req.body.pricing || !req.body.pricing.reseller) {
+        return res.status(400).json({ message: 'Pricing.reseller is required' });
       }
 
-      // In the create method, update the product creation:
+      // Handle images
+      const images = req.files ? req.files.map(file => file.location) : [];
+
+      // Create the product
       const product = new Product({
         name: req.body.name,
-        categoryId: subCategory.category,
+        categoryId: req.body.categoryId,
         subCategoryId: req.body.subCategoryId,
         subSubCategoryId: req.body.subSubCategoryId,
-        pricing: {
-          mrp: req.body.pricing.mrp,
-          regular: req.body.pricing.regular,
-          reseller: req.body.pricing.reseller,
-          special: req.body.pricing.special
-        },
+        pricing: req.body.pricing,
         description: req.body.description,
         colors: req.body.colors || [],
         sizes: req.body.sizes || [],
-        dynamicFields: req.body.dynamicFields,
-        images: req.body.images,
-        stock: req.body.stock
+        dynamicFields: req.body.dynamicFields || {},
+        images,
       });
 
       const savedProduct = await product.save();

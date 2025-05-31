@@ -47,7 +47,11 @@ const productSchema = new mongoose.Schema({
     type: Map,
     of: mongoose.Schema.Types.Mixed
   },
-  images: [String],
+  images: [
+    {
+      type: String, // S3 URL of the product image
+    }
+  ],
   isAvailable: {
     type: Boolean,
     default: true
