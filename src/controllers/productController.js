@@ -4,18 +4,27 @@ const { SubCategory } = require('../models/SubCategory');
 function filterProductPrice(product, role) {
   const pricing = product.pricing || {};
   if (role === 'admin') {
+    // Admin gets all prices
     return {
       ...product.toObject(),
-      pricing
+      pricing: {
+        mrp: pricing.mrp ?? null,
+        regular: pricing.regular ?? null,
+        reseller: pricing.reseller ?? null,
+        special: pricing.special ?? null
+      }
     };
   }
-  let priceKey = 'mrp';
-  if (role === 'regular') priceKey = 'regular';
+  // For other roles, always include mrp and the relevant price
+  let priceKey = 'regular';
   if (role === 'reseller') priceKey = 'reseller';
   if (role === 'special') priceKey = 'special';
   return {
     ...product.toObject(),
-    pricing: { [priceKey]: pricing[priceKey] }
+    pricing: {
+      mrp: pricing.mrp ?? null,
+      [priceKey]: pricing[priceKey] ?? null
+    }
   };
 }
 
