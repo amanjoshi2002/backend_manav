@@ -4,7 +4,14 @@ const pdfController = {
   // Create new PDF (admin only)
   create: async (req, res) => {
     try {
-      const pdf = new Pdf(req.body);
+      const data = req.body;
+      if (req.files && req.files.pdf && req.files.pdf[0]) {
+        data.pdfLink = req.files.pdf[0].location;
+      }
+      if (req.files && req.files.image && req.files.image[0]) {
+        data.image = req.files.image[0].location;
+      }
+      const pdf = new Pdf(data);
       const savedPdf = await pdf.save();
       res.status(201).json(savedPdf);
     } catch (error) {
@@ -38,7 +45,14 @@ const pdfController = {
   // Update PDF (admin only)
   update: async (req, res) => {
     try {
-      const pdf = await Pdf.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const data = req.body;
+      if (req.files && req.files.pdf && req.files.pdf[0]) {
+        data.pdfLink = req.files.pdf[0].location;
+      }
+      if (req.files && req.files.image && req.files.image[0]) {
+        data.image = req.files.image[0].location;
+      }
+      const pdf = await Pdf.findByIdAndUpdate(req.params.id, data, { new: true });
       if (!pdf) {
         return res.status(404).json({ message: 'PDF not found' });
       }

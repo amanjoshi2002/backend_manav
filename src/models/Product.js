@@ -6,8 +6,8 @@ const productSchema = new mongoose.Schema({
     required: true
   },
   categoryId: {
-    type: String,
-    enum: ['apparels', 'trophies', 'corporate_gifts', 'personalised_gifts'],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
     required: true
   },
   subCategoryId: {
@@ -40,14 +40,14 @@ const productSchema = new mongoose.Schema({
   description: String,
   colors: [{
     name: String,
-    images: [String]
+    images: [String] // S3 URLs
   }],
   sizes: [String],
   dynamicFields: {
     type: Map,
     of: mongoose.Schema.Types.Mixed
   },
-  images: [String],
+  images: [String], // S3 or local URLs
   isAvailable: {
     type: Boolean,
     default: true

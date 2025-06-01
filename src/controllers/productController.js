@@ -1,15 +1,35 @@
 const Product = require('../models/Product');
-
 const { SubCategory } = require('../models/SubCategory');
+
+function filterProductPrice(product, role) {
+  const pricing = product.pricing || {};
+  if (role === 'admin') {
+    return {
+      ...product.toObject(),
+      pricing
+    };
+  }
+  let priceKey = 'mrp';
+  if (role === 'regular') priceKey = 'regular';
+  if (role === 'reseller') priceKey = 'reseller';
+  if (role === 'special') priceKey = 'special';
+  return {
+    ...product.toObject(),
+    pricing: { [priceKey]: pricing[priceKey] }
+  };
+}
 
 const productController = {
   // Create new product
   create: async (req, res) => {
     try {
-      // Verify that the sub-subcategory exists
-      const subCategory = await SubCategory.findById(req.body.subCategoryId);
+      // Fetch subcategory and populate category
+      const subCategory = await SubCategory.findById(req.body.subCategoryId).populate('category');
       if (!subCategory) {
         return res.status(404).json({ message: 'Subcategory not found' });
+      }
+      if (!subCategory.category || !subCategory.category._id) {
+        return res.status(400).json({ message: 'Subcategory does not have a valid category reference' });
       }
 
       const subSubCategory = subCategory.subCategories.id(req.body.subSubCategoryId);
@@ -17,29 +37,61 @@ const productController = {
         return res.status(404).json({ message: 'Sub-subcategory not found' });
       }
 
-      // In the create method, update the product creation:
+      // Parse JSON string fields if needed
+      let pricing = req.body.pricing;
+      if (typeof pricing === "string") {
+        try { pricing = JSON.parse(pricing); } catch { pricing = {}; }
+      }
+      let sizes = req.body.sizes;
+      if (typeof sizes === "string") {
+        try { sizes = JSON.parse(sizes); } catch { sizes = []; }
+      }
+      let colors = req.body.colors;
+      if (typeof colors === "string") {
+        try { colors = JSON.parse(colors); } catch { colors = []; }
+      }
+      let dynamicFields = req.body.dynamicFields;
+      if (typeof dynamicFields === "string") {
+        try { dynamicFields = JSON.parse(dynamicFields); } catch { dynamicFields = {}; }
+      }
+
+      // Handle main product images
+      let imageUrls = [];
+      if (req.files && req.files.images) {
+        imageUrls = req.files.images.map(file => file.location || file.path);
+      }
+
+      // Handle color images: colorImages-0, colorImages-1, ...
+      colors = Array.isArray(colors) ? colors : [];
+      colors.forEach((color, idx) => {
+        const fieldName = `colorImages-${idx}`;
+        if (req.files && req.files[fieldName]) {
+          color.images = req.files[fieldName].map(file => file.location || file.path);
+        }
+      });
+
+      // Fix: set categoryId from populated subCategory.category._id
       const product = new Product({
         name: req.body.name,
-        categoryId: subCategory.category,
+        categoryId: subCategory.category?._id, // <-- Fix here
         subCategoryId: req.body.subCategoryId,
         subSubCategoryId: req.body.subSubCategoryId,
-        pricing: {
-          mrp: req.body.pricing.mrp,
-          regular: req.body.pricing.regular,
-          reseller: req.body.pricing.reseller,
-          special: req.body.pricing.special
-        },
+        pricing: pricing,
         description: req.body.description,
-        colors: req.body.colors || [],
-        sizes: req.body.sizes || [],
-        dynamicFields: req.body.dynamicFields,
-        images: req.body.images,
-        stock: req.body.stock
+        colors: colors,
+        sizes: sizes,
+        dynamicFields: dynamicFields,
+        images: imageUrls,
+        stock: req.body.stock,
+        isActive: req.body.isActive
       });
 
       const savedProduct = await product.save();
       res.status(201).json(savedProduct);
     } catch (error) {
+      console.error('Product Create Error:', error);
+      console.error('Request Body:', req.body);
+      console.error('Request Files:', req.files);
       res.status(400).json({ message: error.message });
     }
   },
@@ -49,7 +101,9 @@ const productController = {
     try {
       const products = await Product.find({ isActive: true })
         .populate('subCategoryId', 'name');
-      res.json(products);
+      const role = req.user?.role || 'regular';
+      const filtered = products.map(p => filterProductPrice(p, role));
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -62,7 +116,9 @@ const productController = {
         categoryId: req.params.category,
         isActive: true
       }).populate('subCategoryId', 'name');
-      res.json(products);
+      const role = req.user?.role || 'regular';
+      const filtered = products.map(p => filterProductPrice(p, role));
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -75,7 +131,9 @@ const productController = {
         subCategoryId: req.params.subCategoryId,
         isActive: true
       }).populate('subCategoryId', 'name');
-      res.json(products);
+      const role = req.user?.role || 'regular';
+      const filtered = products.map(p => filterProductPrice(p, role));
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -89,7 +147,9 @@ const productController = {
         subSubCategoryId: req.params.subSubCategoryId,
         isActive: true
       }).populate('subCategoryId', 'name');
-      res.json(products);
+      const role = req.user?.role || 'regular';
+      const filtered = products.map(p => filterProductPrice(p, role));
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -103,7 +163,8 @@ const productController = {
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
-      res.json(product);
+      const role = req.user?.role || 'regular';
+      res.json(filterProductPrice(product, role));
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -130,6 +191,44 @@ const productController = {
         }
       }
 
+      // Handle main product images
+      if (req.files && req.files.images) {
+        req.body.images = req.files.images.map(file => file.location || file.path);
+      }
+
+      // Handle color images: colorImages-0, colorImages-1, ...
+      let colors = req.body.colors || [];
+      if (typeof colors === 'string') {
+        colors = JSON.parse(colors);
+      }
+      colors = Array.isArray(colors) ? colors : [];
+
+      colors.forEach((color, idx) => {
+        const fieldName = `colorImages-${idx}`;
+        if (req.files && req.files[fieldName]) {
+          color.images = req.files[fieldName].map(file => file.location || file.path);
+        }
+      });
+
+      // Parse JSON string fields
+      let pricing = req.body.pricing;
+      if (typeof pricing === "string") {
+        pricing = JSON.parse(pricing);
+      }
+      let sizes = req.body.sizes;
+      if (typeof sizes === "string") {
+        sizes = JSON.parse(sizes);
+      }
+      let dynamicFields = req.body.dynamicFields;
+      if (typeof dynamicFields === "string") {
+        dynamicFields = JSON.parse(dynamicFields);
+      }
+
+      req.body.colors = colors;
+      req.body.pricing = pricing;
+      req.body.sizes = sizes;
+      req.body.dynamicFields = dynamicFields;
+
       Object.keys(req.body).forEach(key => {
         product[key] = req.body[key];
       });
@@ -137,6 +236,9 @@ const productController = {
       const updatedProduct = await product.save();
       res.json(updatedProduct);
     } catch (error) {
+      console.error('Product Update Error:', error);
+      console.error('Request Body:', req.body);
+      console.error('Request Files:', req.files);
       res.status(400).json({ message: error.message });
     }
   },

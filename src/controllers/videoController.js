@@ -4,7 +4,14 @@ const videoController = {
   // Create new video (admin only)
   create: async (req, res) => {
     try {
-      const video = new Video(req.body);
+      const data = req.body;
+      if (req.files && req.files.video && req.files.video[0]) {
+        data.videoLink = req.files.video[0].location;
+      }
+      if (req.files && req.files.image && req.files.image[0]) {
+        data.image = req.files.image[0].location;
+      }
+      const video = new Video(data);
       const savedVideo = await video.save();
       res.status(201).json(savedVideo);
     } catch (error) {
@@ -38,7 +45,14 @@ const videoController = {
   // Update video (admin only)
   update: async (req, res) => {
     try {
-      const video = await Video.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      const data = req.body;
+      if (req.files && req.files.video && req.files.video[0]) {
+        data.videoLink = req.files.video[0].location;
+      }
+      if (req.files && req.files.image && req.files.image[0]) {
+        data.image = req.files.image[0].location;
+      }
+      const video = await Video.findByIdAndUpdate(req.params.id, data, { new: true });
       if (!video) {
         return res.status(404).json({ message: 'Video not found' });
       }

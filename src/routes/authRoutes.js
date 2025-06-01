@@ -7,9 +7,11 @@ const {
   logout,
   forgotPassword,
   resetPassword,
+  verifyOtp, // <-- Add this
   updateRole,
   getUsers, // New function to get users
-  deleteUser // New function to delete user
+  deleteUser, // New function to delete user
+  getMe // <-- Add this
 } = require('../controllers/authController');
 
 // Public auth routes
@@ -17,7 +19,10 @@ router.post('/signup', signup);
 router.post('/login', login);
 router.get('/logout', logout);
 router.post('/forgotpassword', forgotPassword);
-router.put('/resetpassword/:resettoken', resetPassword);
+router.post('/verify-otp', verifyOtp); // New route for OTP verification
+
+// Authenticated user route to get own details
+router.get('/me', protect, getMe);
 
 // Admin only routes
 router.put('/users/:id/role', protect, adminOnly, updateRole);

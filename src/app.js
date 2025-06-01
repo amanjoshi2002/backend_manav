@@ -7,13 +7,15 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: 'https://manav-adminpanel.vercel.app', // Your frontend URL
+  origin: 'http://localhost:3000', // Your frontend URL
   credentials: true, // Allow credentials
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'] // Allowed headers
 }));
 
+// Only parse JSON for non-multipart requests
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/categories', require('./routes/categoryRoutes'));

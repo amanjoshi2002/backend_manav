@@ -1,10 +1,14 @@
-
 const { SubCategory } = require('../models/SubCategory');
+const mongoose = require('mongoose');
 const subCategoryController = {
   // Create new subcategory with sub-subcategories
   create: async (req, res) => {
     try {
-      const subCategory = new SubCategory(req.body);
+      const data = req.body;
+      if (req.file) {
+        data.image = req.file.location; // S3 URL
+      }
+      const subCategory = new SubCategory(data);
       const savedSubCategory = await subCategory.save();
       res.status(201).json(savedSubCategory);
     } catch (error) {
@@ -15,8 +19,12 @@ const subCategoryController = {
   // Get all subcategories by main category
   getByCategory: async (req, res) => {
     try {
+      const categoryId = req.params.category;
+      if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+        return res.status(400).json({ message: 'Invalid category id' });
+      }
       const subCategories = await SubCategory.find({
-        category: req.params.category,
+        category: categoryId,
         isActive: true
       });
       res.json(subCategories);
@@ -45,7 +53,11 @@ const subCategoryController = {
       if (!subCategory) {
         return res.status(404).json({ message: 'Subcategory not found' });
       }
-      subCategory.subCategories.push(req.body);
+      const subSubCat = req.body;
+      if (req.file) {
+        subSubCat.image = req.file.location; // S3 URL
+      }
+      subCategory.subCategories.push(subSubCat);
       const updatedSubCategory = await subCategory.save();
       res.json(updatedSubCategory);
     } catch (error) {
@@ -56,21 +68,19 @@ const subCategoryController = {
   // Update sub-subcategory
   updateSubSubCategory: async (req, res) => {
     try {
-      const subCategory = await SubCategory.findOneAndUpdate(
-        { 
-          '_id': req.params.id,
-          'subCategories._id': req.params.subId
-        },
-        {
-          $set: {
-            'subCategories.$': req.body
-          }
-        },
-        { new: true }
-      );
+      const subCategory = await SubCategory.findById(req.params.id);
       if (!subCategory) {
-        return res.status(404).json({ message: 'Subcategory or sub-subcategory not found' });
+        return res.status(404).json({ message: 'Subcategory not found' });
       }
+      const subSubCat = subCategory.subCategories.id(req.params.subId);
+      if (!subSubCat) {
+        return res.status(404).json({ message: 'Sub-subcategory not found' });
+      }
+      Object.assign(subSubCat, req.body);
+      if (req.file) {
+        subSubCat.image = req.file.location; // S3 URL
+      }
+      await subCategory.save();
       res.json(subCategory);
     } catch (error) {
       res.status(400).json({ message: error.message });
