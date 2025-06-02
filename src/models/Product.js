@@ -19,12 +19,17 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
+  gst: {
+    type: Number,
+    required: false,
+    default: 0
+  },
   pricing: {
     mrp: {
       type: Number,
       required: true
     },
-    regular: {
+    customer: {
       type: Number,
       required: true
     },

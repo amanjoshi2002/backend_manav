@@ -9,14 +9,14 @@ function filterProductPrice(product, role) {
       ...product.toObject(),
       pricing: {
         mrp: pricing.mrp ?? null,
-        regular: pricing.regular ?? null,
+        customer: pricing.customer ?? null,
         reseller: pricing.reseller ?? null,
         special: pricing.special ?? null
       }
     };
   }
   // For other roles, always include mrp and the relevant price
-  let priceKey = 'regular';
+  let priceKey = 'customer';
   if (role === 'reseller') priceKey = 'reseller';
   if (role === 'special') priceKey = 'special';
   return {
@@ -82,9 +82,10 @@ const productController = {
       // Fix: set categoryId from populated subCategory.category._id
       const product = new Product({
         name: req.body.name,
-        categoryId: subCategory.category?._id, // <-- Fix here
+        categoryId: subCategory.category?._id,
         subCategoryId: req.body.subCategoryId,
         subSubCategoryId: req.body.subSubCategoryId,
+        gst: req.body.gst, // <-- Add GST here
         pricing: pricing,
         description: req.body.description,
         colors: colors,
@@ -110,7 +111,7 @@ const productController = {
     try {
       const products = await Product.find({ isActive: true })
         .populate('subCategoryId', 'name');
-      const role = req.user?.role || 'regular';
+      const role = req.user?.role || 'customer';
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -125,7 +126,7 @@ const productController = {
         categoryId: req.params.category,
         isActive: true
       }).populate('subCategoryId', 'name');
-      const role = req.user?.role || 'regular';
+      const role = req.user?.role || 'customer';
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -140,7 +141,7 @@ const productController = {
         subCategoryId: req.params.subCategoryId,
         isActive: true
       }).populate('subCategoryId', 'name');
-      const role = req.user?.role || 'regular';
+      const role = req.user?.role || 'customer';
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -156,7 +157,7 @@ const productController = {
         subSubCategoryId: req.params.subSubCategoryId,
         isActive: true
       }).populate('subCategoryId', 'name');
-      const role = req.user?.role || 'regular';
+      const role = req.user?.role || 'customer';
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -172,7 +173,7 @@ const productController = {
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
-      const role = req.user?.role || 'regular';
+      const role = req.user?.role || 'customer';
       res.json(filterProductPrice(product, role));
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -237,6 +238,11 @@ const productController = {
       req.body.pricing = pricing;
       req.body.sizes = sizes;
       req.body.dynamicFields = dynamicFields;
+
+      // Ensure gst is a number if provided
+      if (req.body.gst !== undefined) {
+        req.body.gst = Number(req.body.gst);
+      }
 
       Object.keys(req.body).forEach(key => {
         product[key] = req.body[key];
