@@ -54,7 +54,7 @@ exports.appOnly = async (req, res, next) => {
   }
 };
 
-// Role-based authorization for app users (regular, reseller, special)
+// Role-based authorization for app users (customer, reseller, special)
 exports.authorize = (...roles) => {
   return (req, res, next) => {
     // Allow admin users to access all routes

@@ -19,7 +19,7 @@ exports.signup = async (req, res) => {
       name,
       email,
       password,
-      role: role || 'regular' // Only allow non-admin roles
+      role: role || 'customer' // Only allow non-admin roles
     });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -179,7 +179,7 @@ exports.updateRole = async (req, res) => {
     }
 
     // Validate role
-    const validRoles = ['regular', 'reseller', 'special', 'admin'];
+    const validRoles = ['customer', 'reseller', 'special', 'admin'];
     if (!validRoles.includes(req.body.role)) {
       return res.status(400).json({
         success: false,
