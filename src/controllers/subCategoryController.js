@@ -19,13 +19,16 @@ const subCategoryController = {
   // Get all subcategories by main category
   getByCategory: async (req, res) => {
     try {
-      const categoryId = req.params.category;
+      const categoryId = req.params.categoryId; // <-- fix here
       if (!mongoose.Types.ObjectId.isValid(categoryId)) {
         return res.status(400).json({ message: 'Invalid category id' });
       }
+      // When querying subcategories by categoryId, check both fields
       const subCategories = await SubCategory.find({
-        category: categoryId,
-        isActive: true
+        $or: [
+          { categoryId: categoryId },
+          { category: categoryId }
+        ]
       });
       res.json(subCategories);
     } catch (error) {
