@@ -13,11 +13,11 @@ router.get('/subcategory/:subCategoryId/sub/:subSubCategoryId', protect, product
 
 // Accept main images and dynamic color images
 const productUploadFields = [
-  { name: 'images', maxCount: 20 },
-  // Accept up to 100 colors, each with up to 20 images
+  { name: 'images', maxCount: 1000 },
+  // Accept up to 100 colors, each with up to 1000 images
   ...Array.from({ length: 100 }).map((_, idx) => ({
     name: `colorImages-${idx}`,
-    maxCount: 20
+    maxCount: 1000
   }))
 ];
 
