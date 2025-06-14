@@ -79,24 +79,63 @@ const productController = {
         }
       });
 
+      // Debug: Log ALL incoming fields
+      console.log('Full request body:', req.body);
+
+      // Ensure booleans for showFor* fields with proper conversion
+      const showForCustomer = req.body.showForCustomer === 'true' || req.body.showForCustomer === true;
+      const showForReseller = req.body.showForReseller === 'true' || req.body.showForReseller === true;
+      const showForSpecial = req.body.showForSpecial === 'true' || req.body.showForSpecial === true;
+      // If field is missing (checkbox not checked), treat as false
+      const showForCustomerFinal = req.body.showForCustomer !== undefined ? showForCustomer : false;
+      const showForResellerFinal = req.body.showForReseller !== undefined ? showForReseller : false;
+      const showForSpecialFinal = req.body.showForSpecial !== undefined ? showForSpecial : false;
+      const isActive = req.body.isActive === 'true' || req.body.isActive === true;
+
+      // Convert stock to number and set isAvailable based on stock
+      const stock = Number(req.body.stock) || 0;
+      const isAvailable = stock > 0;
+
+      // Debug log
+      console.log('Creating product with all boolean fields:', {
+        showForCustomer,
+        showForReseller,
+        showForSpecial,
+        isActive,
+        stock,
+        isAvailable
+      });
+
       // Fix: set categoryId from populated subCategory.category._id
       const product = new Product({
         name: req.body.name,
         categoryId: subCategory.category?._id,
         subCategoryId: req.body.subCategoryId,
         subSubCategoryId: req.body.subSubCategoryId,
-        gst: req.body.gst, // <-- Add GST here
+        gst: req.body.gst,
         pricing: pricing,
         description: req.body.description,
         colors: colors,
         sizes: sizes,
         dynamicFields: dynamicFields,
         images: imageUrls,
-        stock: req.body.stock,
-        isActive: req.body.isActive
+        stock: stock,
+        isAvailable: isAvailable,
+        isActive: isActive,
+        showForCustomer: showForCustomerFinal,
+        showForReseller: showForResellerFinal,
+        showForSpecial: showForSpecialFinal
       });
 
       const savedProduct = await product.save();
+      console.log('Product saved with all fields:', {
+        showForCustomer: savedProduct.showForCustomer,
+        showForReseller: savedProduct.showForReseller,
+        showForSpecial: savedProduct.showForSpecial,
+        isActive: savedProduct.isActive,
+        stock: savedProduct.stock,
+        isAvailable: savedProduct.isAvailable
+      });
       res.status(201).json(savedProduct);
     } catch (error) {
       console.error('Product Create Error:', error);
@@ -109,9 +148,15 @@ const productController = {
   // Get all products
   getAll: async (req, res) => {
     try {
-      const products = await Product.find({ isActive: true })
-        .populate('subCategoryId', 'name');
       const role = req.user?.role || 'customer';
+      // Build visibility filter
+      let visibilityFilter = { isActive: true };
+      if (role === 'customer') visibilityFilter.showForCustomer = true;
+      if (role === 'reseller') visibilityFilter.showForReseller = true;
+      if (role === 'special') visibilityFilter.showForSpecial = true;
+
+      const products = await Product.find(visibilityFilter)
+        .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -122,11 +167,14 @@ const productController = {
   // Get products by category
   getByCategory: async (req, res) => {
     try {
-      const products = await Product.find({
-        categoryId: req.params.category,
-        isActive: true
-      }).populate('subCategoryId', 'name');
       const role = req.user?.role || 'customer';
+      let visibilityFilter = { categoryId: req.params.category, isActive: true };
+      if (role === 'customer') visibilityFilter.showForCustomer = true;
+      if (role === 'reseller') visibilityFilter.showForReseller = true;
+      if (role === 'special') visibilityFilter.showForSpecial = true;
+
+      const products = await Product.find(visibilityFilter)
+        .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -137,11 +185,14 @@ const productController = {
   // Get products by subcategory
   getBySubCategory: async (req, res) => {
     try {
-      const products = await Product.find({
-        subCategoryId: req.params.subCategoryId,
-        isActive: true
-      }).populate('subCategoryId', 'name');
       const role = req.user?.role || 'customer';
+      let visibilityFilter = { subCategoryId: req.params.subCategoryId, isActive: true };
+      if (role === 'customer') visibilityFilter.showForCustomer = true;
+      if (role === 'reseller') visibilityFilter.showForReseller = true;
+      if (role === 'special') visibilityFilter.showForSpecial = true;
+
+      const products = await Product.find(visibilityFilter)
+        .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -152,12 +203,18 @@ const productController = {
   // Get products by sub-subcategory
   getBySubSubCategory: async (req, res) => {
     try {
-      const products = await Product.find({
+      const role = req.user?.role || 'customer';
+      let visibilityFilter = {
         subCategoryId: req.params.subCategoryId,
         subSubCategoryId: req.params.subSubCategoryId,
         isActive: true
-      }).populate('subCategoryId', 'name');
-      const role = req.user?.role || 'customer';
+      };
+      if (role === 'customer') visibilityFilter.showForCustomer = true;
+      if (role === 'reseller') visibilityFilter.showForReseller = true;
+      if (role === 'special') visibilityFilter.showForSpecial = true;
+
+      const products = await Product.find(visibilityFilter)
+        .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
       res.json(filtered);
     } catch (error) {
@@ -174,6 +231,14 @@ const productController = {
         return res.status(404).json({ message: 'Product not found' });
       }
       const role = req.user?.role || 'customer';
+      // Check visibility for the user type
+      if (
+        (role === 'customer' && !product.showForCustomer) ||
+        (role === 'reseller' && !product.showForReseller) ||
+        (role === 'special' && !product.showForSpecial)
+      ) {
+        return res.status(403).json({ message: 'Product not available for your user type' });
+      }
       res.json(filterProductPrice(product, role));
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -187,6 +252,11 @@ const productController = {
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
+
+      // Debug: Log what we received
+      console.log('Full update request body:', req.body);
+      // Log the relevant fields for debugging
+      console.log('showForCustomer:', req.body.showForCustomer, 'showForReseller:', req.body.showForReseller, 'showForSpecial:', req.body.showForSpecial);
 
       // If changing sub-subcategory, verify it exists
       if (req.body.subSubCategoryId && req.body.subSubCategoryId !== product.subSubCategoryId.toString()) {
@@ -239,16 +309,68 @@ const productController = {
       req.body.sizes = sizes;
       req.body.dynamicFields = dynamicFields;
 
-      // Ensure gst is a number if provided
+      // Fix: Explicitly handle all boolean and numeric fields
       if (req.body.gst !== undefined) {
         req.body.gst = Number(req.body.gst);
       }
 
+      if (req.body.stock !== undefined) {
+        req.body.stock = Number(req.body.stock);
+        // Also update isAvailable based on stock
+        req.body.isAvailable = req.body.stock > 0;
+      }
+
+      // Handle boolean fields explicitly
+      if (req.body.showForCustomer !== undefined) {
+        req.body.showForCustomer = req.body.showForCustomer === 'true' || req.body.showForCustomer === true;
+      } else {
+        // Do not overwrite if not present
+        delete req.body.showForCustomer;
+      }
+      if (req.body.showForReseller !== undefined) {
+        req.body.showForReseller = req.body.showForReseller === 'true' || req.body.showForReseller === true;
+      } else {
+        delete req.body.showForReseller;
+      }
+      if (req.body.showForSpecial !== undefined) {
+        req.body.showForSpecial = req.body.showForSpecial === 'true' || req.body.showForSpecial === true;
+      } else {
+        delete req.body.showForSpecial;
+      }
+      if (req.body.isActive !== undefined) {
+        req.body.isActive = req.body.isActive === 'true' || req.body.isActive === true;
+      }
+
+      // Debug: Log converted values
+      console.log('Converted all values:', {
+        showForCustomer: req.body.showForCustomer,
+        showForReseller: req.body.showForReseller,
+        showForSpecial: req.body.showForSpecial,
+        isActive: req.body.isActive,
+        stock: req.body.stock,
+        isAvailable: req.body.isAvailable
+      });
+
+      // Update fields one by one to ensure they're set
       Object.keys(req.body).forEach(key => {
-        product[key] = req.body[key];
+        if (req.body[key] !== undefined) {
+          product[key] = req.body[key];
+        }
       });
 
       const updatedProduct = await product.save();
+      
+      // Debug: Log what was actually saved
+      console.log('Product updated - final values:', {
+        showForCustomer: updatedProduct.showForCustomer,
+        showForReseller: updatedProduct.showForReseller,
+        showForSpecial: updatedProduct.showForSpecial,
+        isActive: updatedProduct.isActive,
+        stock: updatedProduct.stock,
+        isAvailable: updatedProduct.isAvailable,
+        _id: updatedProduct._id
+      });
+      
       res.json(updatedProduct);
     } catch (error) {
       console.error('Product Update Error:', error);

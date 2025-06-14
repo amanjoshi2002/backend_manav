@@ -53,11 +53,28 @@ const productSchema = new mongoose.Schema({
     of: mongoose.Schema.Types.Mixed
   },
   images: [String], // S3 or local URLs
+  stock: {
+    type: Number,
+    default: 0
+  },
   isAvailable: {
     type: Boolean,
     default: true
   },
   isActive: {
+    type: Boolean,
+    default: true
+  },
+  // Add visibility controls for each user type
+  showForCustomer: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller: {
+    type: Boolean,
+    default: true
+  },
+  showForSpecial: {
     type: Boolean,
     default: true
   }
