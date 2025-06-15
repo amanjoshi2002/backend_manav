@@ -179,7 +179,7 @@ exports.updateRole = async (req, res) => {
     }
 
     // Validate role
-    const validRoles = ['customer', 'reseller', 'special', 'admin'];
+    const validRoles = ['customer', 'reseller', 'reseller1', 'reseller2', 'reseller3', 'reseller4', 'reseller5', 'reseller6', 'special', 'admin'];
     if (!validRoles.includes(req.body.role)) {
       return res.status(400).json({
         success: false,

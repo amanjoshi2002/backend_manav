@@ -23,13 +23,33 @@ const subCategoryController = {
       if (!mongoose.Types.ObjectId.isValid(categoryId)) {
         return res.status(400).json({ message: 'Invalid category id' });
       }
+      
       // When querying subcategories by categoryId, check both fields
-      const subCategories = await SubCategory.find({
+      let subCategories = await SubCategory.find({
         $or: [
           { categoryId: categoryId },
           { category: categoryId }
         ]
       });
+
+      // Filter based on user role
+      if (req.user && req.user.role !== 'admin') {
+        const userRole = req.user.role;
+        const roleField = `showFor${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`;
+        
+        subCategories = subCategories.filter(subcat => {
+          // Check if subcategory is visible for this role
+          if (!subcat[roleField]) return false;
+          
+          // Filter sub-subcategories within each subcategory
+          subcat.subCategories = subcat.subCategories.filter(subSubcat => {
+            return subSubcat[roleField] !== false;
+          });
+          
+          return true;
+        });
+      }
+
       res.json(subCategories);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -39,10 +59,27 @@ const subCategoryController = {
   // Get specific subcategory with its sub-subcategories
   getById: async (req, res) => {
     try {
-      const subCategory = await SubCategory.findById(req.params.id);
+      let subCategory = await SubCategory.findById(req.params.id);
       if (!subCategory) {
         return res.status(404).json({ message: 'Subcategory not found' });
       }
+
+      // Filter based on user role
+      if (req.user && req.user.role !== 'admin') {
+        const userRole = req.user.role;
+        const roleField = `showFor${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`;
+        
+        // Check if subcategory is visible for this role
+        if (!subCategory[roleField]) {
+          return res.status(404).json({ message: 'Subcategory not found' });
+        }
+        
+        // Filter sub-subcategories
+        subCategory.subCategories = subCategory.subCategories.filter(subSubcat => {
+          return subSubcat[roleField] !== false;
+        });
+      }
+
       res.json(subCategory);
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -108,7 +145,26 @@ const subCategoryController = {
   // Get all subcategories
   getAllSubCategories: async (req, res) => {
     try {
-      const subCategories = await SubCategory.find();
+      let subCategories = await SubCategory.find();
+      
+      // Filter based on user role
+      if (req.user && req.user.role !== 'admin') {
+        const userRole = req.user.role;
+        const roleField = `showFor${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`;
+        
+        subCategories = subCategories.filter(subcat => {
+          // Check if subcategory is visible for this role
+          if (!subcat[roleField]) return false;
+          
+          // Filter sub-subcategories within each subcategory
+          subcat.subCategories = subcat.subCategories.filter(subSubcat => {
+            return subSubcat[roleField] !== false;
+          });
+          
+          return true;
+        });
+      }
+
       res.status(200).json({
         success: true,
         data: subCategories
@@ -119,7 +175,46 @@ const subCategoryController = {
         error: error.message
       });
     }
-  }
+  },
+
+  // Update main subcategory
+  update: async (req, res) => {
+    try {
+      const data = req.body;
+      if (req.file) {
+        data.image = req.file.location; // S3 URL
+      }
+      
+      const subCategory = await SubCategory.findByIdAndUpdate(
+        req.params.id, 
+        data, 
+        { new: true, runValidators: true }
+      );
+      
+      if (!subCategory) {
+        return res.status(404).json({ message: 'Subcategory not found' });
+      }
+      
+      res.json(subCategory);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+
+  // Delete main subcategory
+  delete: async (req, res) => {
+    try {
+      const subCategory = await SubCategory.findByIdAndDelete(req.params.id);
+      
+      if (!subCategory) {
+        return res.status(404).json({ message: 'Subcategory not found' });
+      }
+      
+      res.json({ message: 'Subcategory deleted successfully' });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
 };
 
 module.exports = subCategoryController;

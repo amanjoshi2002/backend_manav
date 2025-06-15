@@ -16,8 +16,12 @@ router.get('/', protect, (req, res, next) => {
   return appOnly(req, res, next);
 }, subCategoryController.getAllSubCategories);
 
-// Admin routes
+// Admin routes for main subcategories
 router.post('/', protect, adminOnly, upload.single('image'), subCategoryController.create);
+router.put('/:id', protect, adminOnly, upload.single('image'), subCategoryController.update);
+router.delete('/:id', protect, adminOnly, subCategoryController.delete);
+
+// Admin routes for sub-subcategories
 router.post('/:id/sub', protect, adminOnly, upload.single('image'), subCategoryController.addSubSubCategory);
 router.put('/:id/sub/:subId', protect, adminOnly, upload.single('image'), subCategoryController.updateSubSubCategory);
 router.delete('/:id/sub/:subId', protect, adminOnly, subCategoryController.deleteSubSubCategory);

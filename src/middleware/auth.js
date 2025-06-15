@@ -62,6 +62,9 @@ exports.authorize = (...roles) => {
       return next();
     }
     
+    // Include all valid roles
+    const validRoles = ['customer', 'reseller', 'reseller1', 'reseller2', 'reseller3', 'reseller4', 'reseller5', 'reseller6', 'special'];
+    
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ 
         message: `User role ${req.user.role} is not authorized to access this route`

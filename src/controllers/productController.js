@@ -164,6 +164,39 @@ const productController = {
     }
   },
 
+  // Get all products with role-based filtering
+  getAllProducts: async (req, res) => {
+    try {
+      let query = {};
+      
+      // If user is not admin, only show active products
+      if (req.user && req.user.role !== 'admin') {
+        query.isActive = true;
+        
+        // Also filter by user role visibility
+        const userRole = req.user.role;
+        const roleField = `showFor${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`;
+        query[roleField] = true;
+      }
+
+      const products = await Product.find(query)
+        .populate('categoryId', 'name')
+        .populate('subCategoryId', 'name')
+        .sort({ createdAt: -1 });
+
+      res.status(200).json({
+        success: true,
+        count: products.length,
+        data: products
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  },
+
   // Get products by category
   getByCategory: async (req, res) => {
     try {
@@ -182,6 +215,38 @@ const productController = {
     }
   },
 
+  // Get products by category with role-based filtering
+  getProductsByCategory: async (req, res) => {
+    try {
+      let query = { categoryId: req.params.categoryId };
+      
+      // If user is not admin, only show active products
+      if (req.user && req.user.role !== 'admin') {
+        query.isActive = true;
+        
+        // Also filter by user role visibility
+        const userRole = req.user.role;
+        const roleField = `showFor${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`;
+        query[roleField] = true;
+      }
+
+      const products = await Product.find(query)
+        .populate('categoryId', 'name')
+        .populate('subCategoryId', 'name');
+
+      res.status(200).json({
+        success: true,
+        count: products.length,
+        data: products
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  },
+
   // Get products by subcategory
   getBySubCategory: async (req, res) => {
     try {
@@ -197,6 +262,38 @@ const productController = {
       res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  // Get products by subcategory with role-based filtering
+  getProductsBySubCategory: async (req, res) => {
+    try {
+      let query = { subCategoryId: req.params.subCategoryId };
+      
+      // If user is not admin, only show active products
+      if (req.user && req.user.role !== 'admin') {
+        query.isActive = true;
+        
+        // Also filter by user role visibility
+        const userRole = req.user.role;
+        const roleField = `showFor${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`;
+        query[roleField] = true;
+      }
+
+      const products = await Product.find(query)
+        .populate('categoryId', 'name')
+        .populate('subCategoryId', 'name');
+
+      res.status(200).json({
+        success: true,
+        count: products.length,
+        data: products
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
     }
   },
 
@@ -242,6 +339,49 @@ const productController = {
       res.json(filterProductPrice(product, role));
     } catch (error) {
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  // Get single product by ID
+  getProductById: async (req, res) => {
+    try {
+      let query = { _id: req.params.id };
+      
+      // If user is not admin, only show active products
+      if (req.user && req.user.role !== 'admin') {
+        query.isActive = true;
+        
+        // Also filter by user role visibility
+        const userRole = req.user.role;
+        const roleField = `showFor${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`;
+        query[roleField] = true;
+      }
+
+      const product = await Product.findOne(query)
+        .populate('categoryId', 'name')
+        .populate('subCategoryId', 'name');
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found'
+        });
+      }
+
+      // Add availability status for non-admin users
+      if (req.user && req.user.role !== 'admin') {
+        product._doc.availabilityStatus = product.isAvailable ? 'available' : 'unavailable';
+      }
+
+      res.status(200).json({
+        success: true,
+        data: product
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
     }
   },
 

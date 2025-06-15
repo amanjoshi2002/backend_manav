@@ -34,6 +34,43 @@ const subSubCategorySchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Add visibility controls for each user type
+  showForCustomer: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller1: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller2: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller3: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller4: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller5: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller6: {
+    type: Boolean,
+    default: true
+  },
+  showForSpecial: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -54,6 +91,43 @@ const subCategorySchema = new mongoose.Schema({
   // Sub-subcategories array
   subCategories: [subSubCategorySchema],
   isActive: {
+    type: Boolean,
+    default: true
+  },
+  // Add visibility controls for each user type
+  showForCustomer: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller1: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller2: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller3: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller4: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller5: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller6: {
+    type: Boolean,
+    default: true
+  },
+  showForSpecial: {
     type: Boolean,
     default: true
   }

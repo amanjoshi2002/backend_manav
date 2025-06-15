@@ -37,6 +37,30 @@ const productSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
+    reseller1: {
+      type: Number,
+      required: true
+    },
+    reseller2: {
+      type: Number,
+      required: true
+    },
+    reseller3: {
+      type: Number,
+      required: true
+    },
+    reseller4: {
+      type: Number,
+      required: true
+    },
+    reseller5: {
+      type: Number,
+      required: true
+    },
+    reseller6: {
+      type: Number,
+      required: true
+    },
     special: {
       type: Number,
       required: true
@@ -71,6 +95,30 @@ const productSchema = new mongoose.Schema({
     default: true
   },
   showForReseller: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller1: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller2: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller3: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller4: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller5: {
+    type: Boolean,
+    default: true
+  },
+  showForReseller6: {
     type: Boolean,
     default: true
   },
