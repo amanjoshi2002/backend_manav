@@ -11,6 +11,9 @@ router.get('/category/:category', protect, productController.getByCategory);
 router.get('/subcategory/:subCategoryId', protect, productController.getBySubCategory);
 router.get('/subcategory/:subCategoryId/sub/:subSubCategoryId', protect, productController.getBySubSubCategory);
 
+// Add a route to get all products for analytics (without auth for admin panel)
+router.get('/all/analytics', productController.getAll);
+
 // Accept main images and dynamic color images
 const productUploadFields = [
   { name: 'images', maxCount: 1000 },
