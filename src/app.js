@@ -41,6 +41,8 @@ app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/pdfs', require('./routes/pdfRoutes'));
 app.use('/api/videos', require('./routes/videoRoutes'));
+app.use('/api/policies', require('./routes/policyRoutes'));
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
