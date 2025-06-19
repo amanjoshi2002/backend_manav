@@ -11,7 +11,8 @@ const {
   updateRole,
   getUsers, // New function to get users
   deleteUser, // New function to delete user
-  getMe // <-- Add this
+  getMe, // <-- Add this
+  editProfile, // <-- Add this
 } = require('../controllers/authController');
 
 // Public auth routes
@@ -23,6 +24,9 @@ router.post('/verify-otp', verifyOtp); // New route for OTP verification
 
 // Authenticated user route to get own details
 router.get('/me', protect, getMe);
+
+// Edit profile (user can update their own name, email, password)
+router.put('/me', protect, editProfile);
 
 // Admin only routes
 router.put('/users/:id/role', protect, adminOnly, updateRole);
