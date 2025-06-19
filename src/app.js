@@ -42,6 +42,8 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/pdfs', require('./routes/pdfRoutes'));
 app.use('/api/videos', require('./routes/videoRoutes'));
 app.use('/api/policies', require('./routes/policyRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+
 
 
 // Connect to MongoDB
