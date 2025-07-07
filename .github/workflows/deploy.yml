@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '22.14.0'  # Use your app's Node.js version
+        node-version: '22.14.0'
 
     - name: Install SSH Client
       run: sudo apt-get install openssh-client -y
@@ -27,16 +27,16 @@ jobs:
         echo "${{ secrets.PRIVATE_KEY }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+      shell: bash
 
     - name: Start ssh-agent and add key
       run: |
         eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/id_ed25519
 
-    - name: Deploy via SSH (with debug)
+    - name: Deploy via SSH
       run: |
-        set -e
-        ssh -v ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+        ssh -o StrictHostKeyChecking=no ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
           cd ~/backend_manav || exit 1
           git pull origin main || exit 1
           npm install || exit 1
