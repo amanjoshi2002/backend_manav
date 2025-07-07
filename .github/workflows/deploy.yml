@@ -28,11 +28,21 @@ jobs:
         chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
-    - name: Deploy via SSH
+    - name: Start ssh-agent and add key
       run: |
-        ssh ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
-          cd ~/backend_manav
-          git pull origin main
-          npm install
+        eval "$(ssh-agent -s)"
+        ssh-add ~/.ssh/id_ed25519
+
+    - name: Deploy via SSH (with debug)
+      run: |
+        set -e
+        ssh -v ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+          cd ~/backend_manav || exit 1
+          git pull origin main || exit 1
+          npm install || exit 1
           pm2 restart backend || pm2 start app.js --name backend
         EOF
+
+    - name: Remove SSH Key
+      run: rm -f ~/.ssh/id_ed25519
+      if: always()
