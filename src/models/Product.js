@@ -72,15 +72,64 @@ const productSchema = new mongoose.Schema({
     images: [String] // S3 URLs
   }],
   sizes: [String],
+  sizeBasedPricing: [{
+    size: {
+      type: String,
+      required: true
+    },
+    pricing: {
+      mrp: {
+        type: Number,
+        required: true
+      },
+      customer: {
+        type: Number,
+        required: true
+      },
+      reseller: {
+        type: Number,
+        required: true
+      },
+      reseller1: {
+        type: Number,
+        required: true
+      },
+      reseller2: {
+        type: Number,
+        required: true
+      },
+      reseller3: {
+        type: Number,
+        required: true
+      },
+      reseller4: {
+        type: Number,
+        required: true
+      },
+      reseller5: {
+        type: Number,
+        required: true
+      },
+      reseller6: {
+        type: Number,
+        required: true
+      },
+      special: {
+        type: Number,
+        required: true
+      }
+    }
+  }],
+  pricingMode: {
+    type: String,
+    enum: ['common', 'size-based'],
+    default: 'common'
+  },
   dynamicFields: {
     type: Map,
     of: mongoose.Schema.Types.Mixed
   },
   images: [String], // S3 or local URLs
-  stock: {
-    type: Number,
-    default: 0
-  },
   isAvailable: {
     type: Boolean,
     default: true

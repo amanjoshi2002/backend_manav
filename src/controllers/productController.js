@@ -4,14 +4,20 @@ const { SubCategory } = require('../models/SubCategory');
 function filterProductPrice(product, role) {
   const pricing = product.pricing || {};
   if (role === 'admin') {
-    // Admin gets all prices
+    // Admin gets all prices, including reseller1-6 if present
     return {
       ...product.toObject(),
       pricing: {
         mrp: pricing.mrp ?? null,
         customer: pricing.customer ?? null,
         reseller: pricing.reseller ?? null,
-        special: pricing.special ?? null
+        special: pricing.special ?? null,
+        reseller1: pricing.reseller1 ?? pricing.reseller ?? null,
+        reseller2: pricing.reseller2 ?? pricing.reseller ?? null,
+        reseller3: pricing.reseller3 ?? pricing.reseller ?? null,
+        reseller4: pricing.reseller4 ?? pricing.reseller ?? null,
+        reseller5: pricing.reseller5 ?? pricing.reseller ?? null,
+        reseller6: pricing.reseller6 ?? pricing.reseller ?? null,
       }
     };
   }
@@ -59,6 +65,10 @@ const productController = {
       if (typeof colors === "string") {
         try { colors = JSON.parse(colors); } catch { colors = []; }
       }
+      let sizeBasedPricing = req.body.sizeBasedPricing;
+      if (typeof sizeBasedPricing === "string") {
+        try { sizeBasedPricing = JSON.parse(sizeBasedPricing); } catch { sizeBasedPricing = []; }
+      }
       let dynamicFields = req.body.dynamicFields;
       if (typeof dynamicFields === "string") {
         try { dynamicFields = JSON.parse(dynamicFields); } catch { dynamicFields = {}; }
@@ -92,9 +102,8 @@ const productController = {
       const showForSpecialFinal = req.body.showForSpecial !== undefined ? showForSpecial : false;
       const isActive = req.body.isActive === 'true' || req.body.isActive === true;
 
-      // Convert stock to number and set isAvailable based on stock
-      const stock = Number(req.body.stock) || 0;
-      const isAvailable = stock > 0;
+      // Remove all stock logic and allow isAvailable to be set from req.body
+      const isAvailable = req.body.isAvailable === 'true' || req.body.isAvailable === true;
 
       // Debug log
       console.log('Creating product with all boolean fields:', {
@@ -102,7 +111,6 @@ const productController = {
         showForReseller,
         showForSpecial,
         isActive,
-        stock,
         isAvailable
       });
 
@@ -117,14 +125,21 @@ const productController = {
         description: req.body.description,
         colors: colors,
         sizes: sizes,
+        sizeBasedPricing: sizeBasedPricing, // Add this
         dynamicFields: dynamicFields,
         images: imageUrls,
-        stock: stock,
         isAvailable: isAvailable,
         isActive: isActive,
         showForCustomer: showForCustomerFinal,
         showForReseller: showForResellerFinal,
-        showForSpecial: showForSpecialFinal
+        showForReseller1: req.body.showForReseller1 === 'true' || req.body.showForReseller1 === true,
+        showForReseller2: req.body.showForReseller2 === 'true' || req.body.showForReseller2 === true,
+        showForReseller3: req.body.showForReseller3 === 'true' || req.body.showForReseller3 === true,
+        showForReseller4: req.body.showForReseller4 === 'true' || req.body.showForReseller4 === true,
+        showForReseller5: req.body.showForReseller5 === 'true' || req.body.showForReseller5 === true,
+        showForReseller6: req.body.showForReseller6 === 'true' || req.body.showForReseller6 === true,
+        showForSpecial: showForSpecialFinal,
+        pricingMode: req.body.pricingMode || 'common' // Add this
       });
 
       const savedProduct = await product.save();
@@ -133,7 +148,6 @@ const productController = {
         showForReseller: savedProduct.showForReseller,
         showForSpecial: savedProduct.showForSpecial,
         isActive: savedProduct.isActive,
-        stock: savedProduct.stock,
         isAvailable: savedProduct.isAvailable
       });
       res.status(201).json(savedProduct);
@@ -150,11 +164,13 @@ const productController = {
     try {
       const role = req.user?.role || 'customer';
       // Build visibility filter
-      let visibilityFilter = { isActive: true };
-      if (role === 'customer') visibilityFilter.showForCustomer = true;
-      if (role === 'reseller') visibilityFilter.showForReseller = true;
-      if (role === 'special') visibilityFilter.showForSpecial = true;
-
+      let visibilityFilter = {};
+      if (role !== 'admin') {
+        visibilityFilter.isActive = true;
+        if (role === 'customer') visibilityFilter.showForCustomer = true;
+        if (role === 'reseller') visibilityFilter.showForReseller = true;
+        if (role === 'special') visibilityFilter.showForSpecial = true;
+      }
       const products = await Product.find(visibilityFilter)
         .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
@@ -201,11 +217,13 @@ const productController = {
   getByCategory: async (req, res) => {
     try {
       const role = req.user?.role || 'customer';
-      let visibilityFilter = { categoryId: req.params.category, isActive: true };
-      if (role === 'customer') visibilityFilter.showForCustomer = true;
-      if (role === 'reseller') visibilityFilter.showForReseller = true;
-      if (role === 'special') visibilityFilter.showForSpecial = true;
-
+      let visibilityFilter = { categoryId: req.params.category };
+      if (role !== 'admin') {
+        visibilityFilter.isActive = true;
+        if (role === 'customer') visibilityFilter.showForCustomer = true;
+        if (role === 'reseller') visibilityFilter.showForReseller = true;
+        if (role === 'special') visibilityFilter.showForSpecial = true;
+      }
       const products = await Product.find(visibilityFilter)
         .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
@@ -251,11 +269,13 @@ const productController = {
   getBySubCategory: async (req, res) => {
     try {
       const role = req.user?.role || 'customer';
-      let visibilityFilter = { subCategoryId: req.params.subCategoryId, isActive: true };
-      if (role === 'customer') visibilityFilter.showForCustomer = true;
-      if (role === 'reseller') visibilityFilter.showForReseller = true;
-      if (role === 'special') visibilityFilter.showForSpecial = true;
-
+      let visibilityFilter = { subCategoryId: req.params.subCategoryId };
+      if (role !== 'admin') {
+        visibilityFilter.isActive = true;
+        if (role === 'customer') visibilityFilter.showForCustomer = true;
+        if (role === 'reseller') visibilityFilter.showForReseller = true;
+        if (role === 'special') visibilityFilter.showForSpecial = true;
+      }
       const products = await Product.find(visibilityFilter)
         .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
@@ -303,13 +323,14 @@ const productController = {
       const role = req.user?.role || 'customer';
       let visibilityFilter = {
         subCategoryId: req.params.subCategoryId,
-        subSubCategoryId: req.params.subSubCategoryId,
-        isActive: true
+        subSubCategoryId: req.params.subSubCategoryId
       };
-      if (role === 'customer') visibilityFilter.showForCustomer = true;
-      if (role === 'reseller') visibilityFilter.showForReseller = true;
-      if (role === 'special') visibilityFilter.showForSpecial = true;
-
+      if (role !== 'admin') {
+        visibilityFilter.isActive = true;
+        if (role === 'customer') visibilityFilter.showForCustomer = true;
+        if (role === 'reseller') visibilityFilter.showForReseller = true;
+        if (role === 'special') visibilityFilter.showForSpecial = true;
+      }
       const products = await Product.find(visibilityFilter)
         .populate('subCategoryId', 'name');
       const filtered = products.map(p => filterProductPrice(p, role));
@@ -439,6 +460,10 @@ const productController = {
       if (typeof sizes === "string") {
         sizes = JSON.parse(sizes);
       }
+      let sizeBasedPricing = req.body.sizeBasedPricing;
+      if (typeof sizeBasedPricing === "string") {
+        sizeBasedPricing = JSON.parse(sizeBasedPricing);
+      }
       let dynamicFields = req.body.dynamicFields;
       if (typeof dynamicFields === "string") {
         dynamicFields = JSON.parse(dynamicFields);
@@ -447,17 +472,17 @@ const productController = {
       req.body.colors = colors;
       req.body.pricing = pricing;
       req.body.sizes = sizes;
+      req.body.sizeBasedPricing = sizeBasedPricing; // Add this
       req.body.dynamicFields = dynamicFields;
+      req.body.pricingMode = req.body.pricingMode || 'common'; // Add this
 
       // Fix: Explicitly handle all boolean and numeric fields
       if (req.body.gst !== undefined) {
         req.body.gst = Number(req.body.gst);
       }
 
-      if (req.body.stock !== undefined) {
-        req.body.stock = Number(req.body.stock);
-        // Also update isAvailable based on stock
-        req.body.isAvailable = req.body.stock > 0;
+      if (req.body.isAvailable !== undefined) {
+        req.body.isAvailable = req.body.isAvailable === 'true' || req.body.isAvailable === true;
       }
 
       // Handle boolean fields explicitly
@@ -481,15 +506,53 @@ const productController = {
         req.body.isActive = req.body.isActive === 'true' || req.body.isActive === true;
       }
 
+      // Handle boolean fields explicitly
+      if (req.body.showForReseller1 !== undefined) {
+        req.body.showForReseller1 = req.body.showForReseller1 === 'true' || req.body.showForReseller1 === true;
+      } else {
+        delete req.body.showForReseller1;
+      }
+      if (req.body.showForReseller2 !== undefined) {
+        req.body.showForReseller2 = req.body.showForReseller2 === 'true' || req.body.showForReseller2 === true;
+      } else {
+        delete req.body.showForReseller2;
+      }
+      if (req.body.showForReseller3 !== undefined) {
+        req.body.showForReseller3 = req.body.showForReseller3 === 'true' || req.body.showForReseller3 === true;
+      } else {
+        delete req.body.showForReseller3;
+      }
+      if (req.body.showForReseller4 !== undefined) {
+        req.body.showForReseller4 = req.body.showForReseller4 === 'true' || req.body.showForReseller4 === true;
+      } else {
+        delete req.body.showForReseller4;
+      }
+      if (req.body.showForReseller5 !== undefined) {
+        req.body.showForReseller5 = req.body.showForReseller5 === 'true' || req.body.showForReseller5 === true;
+      } else {
+        delete req.body.showForReseller5;
+      }
+      if (req.body.showForReseller6 !== undefined) {
+        req.body.showForReseller6 = req.body.showForReseller6 === 'true' || req.body.showForReseller6 === true;
+      } else {
+        delete req.body.showForReseller6;
+      }
+
       // Debug: Log converted values
       console.log('Converted all values:', {
         showForCustomer: req.body.showForCustomer,
         showForReseller: req.body.showForReseller,
         showForSpecial: req.body.showForSpecial,
         isActive: req.body.isActive,
-        stock: req.body.stock,
         isAvailable: req.body.isAvailable
       });
+
+      // Ensure all reseller1-6 are set in pricing
+      for (let i = 1; i <= 6; i++) {
+        const key = `reseller${i}`;
+        if (pricing[key] === undefined) pricing[key] = pricing.reseller ?? 0;
+      }
+      req.body.pricing = pricing;
 
       // Update fields one by one to ensure they're set
       Object.keys(req.body).forEach(key => {
@@ -506,7 +569,6 @@ const productController = {
         showForReseller: updatedProduct.showForReseller,
         showForSpecial: updatedProduct.showForSpecial,
         isActive: updatedProduct.isActive,
-        stock: updatedProduct.stock,
         isAvailable: updatedProduct.isAvailable,
         _id: updatedProduct._id
       });
@@ -520,15 +582,13 @@ const productController = {
     }
   },
 
-  // Delete product (soft delete)
+  // Delete product (hard delete)
   delete: async (req, res) => {
     try {
-      const product = await Product.findById(req.params.id);
+      const product = await Product.findByIdAndDelete(req.params.id);
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
-      product.isActive = false;
-      await product.save();
       res.json({ message: 'Product deleted successfully' });
     } catch (error) {
       res.status(500).json({ message: error.message });
