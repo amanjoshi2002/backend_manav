@@ -128,19 +128,26 @@ const subCategoryController = {
   },
 
   // Delete sub-subcategory
-  deleteSubSubCategory: async (req, res) => {
-    try {
-      const subCategory = await SubCategory.findById(req.params.id);
-      if (!subCategory) {
-        return res.status(404).json({ message: 'Subcategory not found' });
-      }
-      subCategory.subCategories.id(req.params.subId).isActive = false;
-      await subCategory.save();
-      res.json({ message: 'Sub-subcategory deactivated successfully' });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+ deleteSubSubCategory: async (req, res) => {
+  try {
+    const subCategory = await SubCategory.findById(req.params.id);
+    if (!subCategory) {
+      return res.status(404).json({ message: 'Subcategory not found' });
     }
-  },
+    // Remove sub-subcategory by _id
+    const before = subCategory.subCategories.length;
+    subCategory.subCategories = subCategory.subCategories.filter(
+      (sub) => sub._id.toString() !== req.params.subId
+    );
+    if (subCategory.subCategories.length === before) {
+      return res.status(404).json({ message: 'Sub-subcategory not found' });
+    }
+    await subCategory.save();
+    res.json({ message: 'Sub-subcategory deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+},
 
   // Get all subcategories
   getAllSubCategories: async (req, res) => {
